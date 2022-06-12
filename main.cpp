@@ -56,8 +56,10 @@ public:
 class Queen : public Piece
 {
 public:
-    Queen(bool white, bool killed) : Piece(white, killed) {
-    }
+    Queen(bool white, bool killed) : Piece(white, killed) {}
+
+    bool canMove(Board &b, Spot &start, Spot &end);
+    Spot* canJump(Board &b, Spot &start, Spot &end);
 };
 
 class Spot
@@ -201,6 +203,61 @@ Spot* Common::canJump(Board &b, Spot &start, Spot &end) {
     }
 }
 
+bool Queen::canMove(Board &b, Spot &start, Spot &end) {
+    if(b.getPiece(end.getX(), end.getY())) return false;
+    Queen *q = dynamic_cast<Queen*>(b.getPiece(start.getX(), start.getY()));
+    if(!q) return false;
+    int dx = end.getX() - start.getX();
+    int dy = end.getY() - start.getY();
+    if(abs(dy) != abs(dx)) return false;
+    int xDiagonal, yDiagonal;
+    if(dx > 0 && dy > 0) {
+        xDiagonal = 1;
+        yDiagonal = 1;
+    } else if(dx > 0 && dy < 0) {
+        xDiagonal = 1;
+        yDiagonal = -1;
+    } else if(dx < 0 && dy < 0) {
+        xDiagonal = -1;
+        yDiagonal = -1;
+    } else {
+        xDiagonal = -1;
+        yDiagonal = 1;
+    }
+    int startX = start.getX(), startY = start.getY();
+    while(startX != end.getX()-xDiagonal && startY != end.getY()-yDiagonal) {
+        if(b.getPiece(startX, startY) != NULL) return false;
+        startX += xDiagonal;
+        startY += yDiagonal;
+    }
+    return true;
+}
+
+Spot* Queen::canJump(Board &b, Spot &start, Spot &end) {
+    if(b.getPiece(end.getX(), end.getY())) return NULL;
+    Queen *q = dynamic_cast<Queen*>(b.getPiece(start.getX(), start.getY()));
+    if(!q) return NULL;
+    int dx = end.getX() - start.getX();
+    int dy = end.getY() - start.getY();
+    if(abs(dy) != abs(dx)) return NULL;
+    int xDiagonal, yDiagonal;
+    if(dx > 0 && dy > 0) {
+        xDiagonal = 1;
+        yDiagonal = 1;
+    } else if(dx > 0 && dy < 0) {
+        xDiagonal = 1;
+        yDiagonal = -1;
+    } else if(dx < 0 && dy < 0) {
+        xDiagonal = -1;
+        yDiagonal = -1;
+    } else {
+        xDiagonal = -1;
+        yDiagonal = 1;
+    }
+    if(b.getPiece(end.getX()-xDiagonal, end.getY()-yDiagonal) == NULL) return NULL;
+    return b.getSpot(end.getX()-xDiagonal, end.getY()-yDiagonal);
+}
+
 
 class Game 
 {
@@ -216,6 +273,16 @@ public:
 
     bool movePiece(Spot &start, Spot &end);
     bool isGameOver();
+    void checkCrowning(Spot &end) {
+        if(end.getPiece()->isWhite() && end.getY() == 0) {
+            board->getSpot(end.getX(), end.getY())->setPiece(new Queen(true, false));
+            return;
+        }
+        if(!end.getPiece()->isWhite() && end.getY() == 7) {
+            board->getSpot(end.getX(), end.getY())->setPiece(new Queen(false, false));
+            return;
+        }
+    }
 };
 
 bool Game::isGameOver() {
@@ -249,6 +316,7 @@ bool Game::movePiece(Spot &start, Spot &end) {
     if(p != NULL) {
         board->getSpot(end.getX(), end.getY())->setPiece(start.getPiece());
         board->getSpot(start.getX(), start.getY())->setPiece(NULL);
+        checkCrowning(*board->getSpot(end.getX(), end.getY()));
         p->getPiece()->setKilled(true);
         if(p->getPiece()->isWhite()) deadWhiteCount++;
         else deadRedCount++;
