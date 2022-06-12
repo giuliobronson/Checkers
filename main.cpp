@@ -1,6 +1,11 @@
 #include <iostream>
+#include <vector>
 
 using namespace std;
+
+// enum Status {
+
+// }
 
 class Spot;
 class Board;
@@ -28,6 +33,10 @@ public:
     }
 
     virtual bool canMove(Board &b, Spot &start, Spot &end) = 0;
+    //virtual Spot& canMove(Board &b, Spot &start) = 0;
+    virtual Spot* canJump(Board &b, Spot &start, Spot &end) = 0;
+    //virtual Piece* canJump(Board &b, Spot &start) = 0;
+
 };
 
 class Common : public Piece
@@ -37,6 +46,11 @@ public:
     }
 
     bool canMove(Board &b, Spot &start, Spot &end);
+    //Spot& canMove(Board &b, Spot &start);
+    Spot* canJump(Board &b, Spot &start, Spot &end);
+    //Piece* canJump(Board &b, Spot &start);
+
+
 };
 
 class Queen : public Piece
@@ -86,7 +100,7 @@ public:
         }
         for (int i = 0; i < 8; i++) {
             for(int j = 0; j < 8; j++) {
-                if(i <= 2 && i%2 != j%2) 
+                if(i <= 2 && i%2 == j%2) 
                     spots[i][j] = new Spot(i, j, new Common(false, false));
                 else if(i >= 5 && i%2 == j%2) 
                     spots[i][j] = new Spot(i, j, new Common(true, false));
@@ -134,82 +148,136 @@ bool Common::canMove(Board &b, Spot &start, Spot &end) {
     if(c->isWhite()) {
         int dx = end.getX() - start.getX();
         int dy = end.getY() - start.getY();
-        if(dy > 0 || dy < -2) return false;
+        if(dy != -1) return false;
         if(dy != -abs(dx)) return false;
-        if(dy == -2) {
-            int pieceX = dx > 0 ? start.getX() + 1 : start.getX() - 1;
-            Common *p = dynamic_cast<Common*>(b.getPiece(pieceX, start.getY() - 1));
-            if(!p || p->isWhite()) return false;
-        }
     }
     else {
         int dx = end.getX() - start.getX();
         int dy = end.getY() - start.getY();
-        if(dy < 0 || dy > 2) return false;
+        if(dy != 1) return false;
         if(dy != abs(dx)) return false;
-        if(dy == 2) {
-            int pieceX = dx > 0 ? start.getX() + 1 : start.getX() - 1;
-            Common *p = dynamic_cast<Common*>(b.getPiece(pieceX, start.getY() + 1));
-            if(!p || !p->isWhite()) return false;
-        }
     }
     return true;
 }
 
-class Move
-{
+// Spot& Common::canMove(Board &b, Spot &start) {
+//     Common *c = dynamic_cast<Common*>(b.getPiece(start.getX(), start.getY()));
+//     if(!c) return false;
 
-};
-
-// class Game 
-// {
-// private:
-//     Board board;
-//     Status statusGame;
-//     bool turn;
-// public:
-//     Game() {
-//     }
-
-//     void makeMove(Casa inicio, Casa fim) {
-//         if(tabuleiro.getPeca(inicio.getX(), inicio.getY())->getPeca()->isJogador() && turno != true) { //se a peça a mover é do jogador
-//             cout << "Nao se pode mover a peca do adversario" << endl;
-//             return;
-//         }
-//         if(!tabuleiro.getPeca(inicio.getX(), inicio.getY())->getPeca()->isJogador() && turno != false) { //se a peça a mover é do jogador
-//             cout << "Nao se pode mover a peca do adversario" << endl;
-//             return;
-//         }
-
-//         if(!tabuleiro.getPeca(inicio.getX(), inicio.getY())->getPeca()->podeMover()) {
-//             cout << "A peca nao pode se mover" << endl;
-//             return;
-//         }
-
-//         //mover a peça e dar um jeito de checar se tinha alguma no caminho
-//     }
-// };
-
-// bool podeMover(Tabuleiro t, Casa inicio, Casa fim) {
-//     if(t.getPeca(inicio.getX(),inicio.getY())->getPeca()->isJogador()) { //se a peça a ser movida for do jogador (só se pode mover pra cima)
-//         if(fim.getY() < inicio.getY() || fim.getY() - inicio.getY() > 1) return false;
-//         if(abs(fim.getX() - inicio.getX()) != 1) return false;
-
-//         if(t.getPeca(fim.getX(), fim.getY())->getPeca() != NULL) return false; //se tiver algo na casa não move
-//         return true;
+//     if(c->isWhite()) {
+        
+//         int dx = end.getX() - start.getX();
+//         int dy = end.getY() - start.getY();
+//         if(dy != -1) return false;
+//         if(dy != -abs(dx)) return false;
 //     }
 //     else {
-//         if(fim.getY() > inicio.getY() || fim.getY() - inicio.getY() < -1) return false;
-//         if(abs(fim.getX() - inicio.getX()) != 1) return false;
-
-//         if(t.getPeca(fim.getX(), fim.getY())->getPeca() != NULL) return false; //se tiver algo na casa não move
-//         return true;
+//         int dx = end.getX() - start.getX();
+//         int dy = end.getY() - start.getY();
+//         if(dy != 1) return false;
+//         if(dy != abs(dx)) return false;
 //     }
+//     return true;
 // }
 
+Spot* Common::canJump(Board &b, Spot &start, Spot &end) {
+    if(b.getPiece(end.getX(), end.getY())) return NULL;
+    Common *c = dynamic_cast<Common*>(b.getPiece(start.getX(), start.getY()));
+    if(!c) return NULL;
+    if(c->isWhite()) {
+        int dx = end.getX() - start.getX();
+        int dy = end.getY() - start.getY();
+        if(dy != -2) return NULL;
+        int pieceX = dx > 0 ? start.getX() + 1 : start.getX() - 1;
+        if(b.getPiece(pieceX, start.getY() - 1) == NULL) return NULL;
+        return b.getSpot(pieceX, start.getY() - 1);
+    } else {
+        int dx = end.getX() - start.getX();
+        int dy = end.getY() - start.getY();
+        if(dy != 2) return NULL;
+        int pieceX = dx > 0 ? start.getX() + 1 : start.getX() - 1;
+        if(b.getPiece(pieceX, start.getY() + 1) == NULL) return NULL;
+        return b.getSpot(pieceX, start.getY() + 1);
+    }
+}
+
+
+class Game 
+{
+private:
+    //Status statusGame;
+    bool isWhiteTurn;
+    int deadWhiteCount, deadRedCount;
+public:
+    Board *board;
+    Game(): isWhiteTurn(true), deadRedCount(0), deadWhiteCount(0) {
+        board = new Board();
+    }
+
+    bool movePiece(Spot &start, Spot &end);
+    bool isGameOver();
+};
+
+bool Game::isGameOver() {
+    if(deadRedCount == 12) {
+        cout << "VITORIA DAS PECAS BRANCAS" << endl;
+        return true;
+    }
+    if(deadWhiteCount == 12) {
+        cout << "VITORIA DAS PECAS VERMELHAS" << endl;
+        return true;
+    }
+    return false;
+};
+
+bool Game::movePiece(Spot &start, Spot &end) {
+    Common *c = dynamic_cast<Common*> (board->getPiece(start.getX(), start.getY()));
+    //Queen *c = dynamic_cast<Queen*> board.getPiece(start.getX(), start.getY());
+    if((isWhiteTurn && !c->isWhite()) || (!isWhiteTurn && c->isWhite())) {
+        cout << "Voce nao pode mover a peca de outro jogador" << endl;
+        return false;
+    }
+
+    if(c->canMove(*board, start, end)) {
+        board->getSpot(end.getX(), end.getY())->setPiece(start.getPiece());
+        board->getSpot(start.getX(), start.getY())->setPiece(NULL);
+        isWhiteTurn = !isWhiteTurn;
+        return true;
+    }
+
+    Spot* p = c->canJump(*board, start, end);
+    if(p != NULL) {
+        board->getSpot(end.getX(), end.getY())->setPiece(start.getPiece());
+        board->getSpot(start.getX(), start.getY())->setPiece(NULL);
+        p->getPiece()->setKilled(true);
+        if(p->getPiece()->isWhite()) deadWhiteCount++;
+        else deadRedCount++;
+        p->setPiece(NULL);
+        isWhiteTurn = !isWhiteTurn;
+        return true;
+    }
+    cout << "Movimento invalido" << endl;
+    return false;
+}
+
+
+
+
 int main() {
-    Board b;
-    b.print();
-    cout << b.getPiece(1,5)->canMove(b, *b.getSpot(1,5),*b.getSpot(2,4)) << endl;
+    Game g;
+
+    g.board->print();
+    cout << g.board->getPiece(1,5)->canMove(*g.board, *g.board->getSpot(1,5),*g.board->getSpot(2,4)) << endl << endl;
+
+    g.movePiece(*g.board->getSpot(1,5), *g.board->getSpot(2,4));
+    g.board->print();
+    g.movePiece(*g.board->getSpot(0,2), *g.board->getSpot(1,3));
+    g.board->print();
+    g.movePiece(*g.board->getSpot(2,4), *g.board->getSpot(0,2));
+    g.board->print();
+    g.movePiece(*g.board->getSpot(4,2), *g.board->getSpot(5,3));
+    g.board->print();
+    g.movePiece(*g.board->getSpot(0,2), *g.board->getSpot(1,1));
+
     return 0;
 }
