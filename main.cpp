@@ -3,10 +3,6 @@
 
 using namespace std;
 
-// enum Status {
-
-// }
-
 class Spot;
 class Board;
 
@@ -33,9 +29,9 @@ public:
     }
 
     virtual bool canMove(Board &b, Spot &start, Spot &end) = 0;
-    //virtual Spot& canMove(Board &b, Spot &start) = 0;
+    virtual Spot* canMove(Board &b, Spot &start) = 0;
     virtual Spot* canJump(Board &b, Spot &start, Spot &end) = 0;
-    //virtual Piece* canJump(Board &b, Spot &start) = 0;
+    virtual Spot* canJump(Board &b, Spot &start) = 0;
 
 };
 
@@ -46,9 +42,9 @@ public:
     }
 
     bool canMove(Board &b, Spot &start, Spot &end);
-    //Spot& canMove(Board &b, Spot &start);
+    Spot* canMove(Board &b, Spot &start); //falta
     Spot* canJump(Board &b, Spot &start, Spot &end);
-    //Piece* canJump(Board &b, Spot &start);
+    Spot* canJump(Board &b, Spot &start);
 
 
 };
@@ -59,7 +55,9 @@ public:
     Queen(bool white, bool killed) : Piece(white, killed) {}
 
     bool canMove(Board &b, Spot &start, Spot &end);
+    Spot* canMove(Board &b, Spot &start); //falta
     Spot* canJump(Board &b, Spot &start, Spot &end);
+    Spot* canJump(Board &b, Spot &start); 
 };
 
 class Spot
@@ -113,6 +111,7 @@ public:
     }
 
     Spot *getSpot(int x, int y) {
+        if(x < 0 || x > 7 || y < 0 || y > 7) return NULL;
         return spots[y][x];
     }
 
@@ -148,10 +147,10 @@ public:
 };
 
 bool Common::canMove(Board &b, Spot &start, Spot &end) {
-    // MOVER CORNER CASE PARA A HORA DE PERGUNTAR AO USUARIO
-    // int xs = start.getX(), ys = start.getY();
-    // int xe = end.getX(), ye = end.getY();
-    // if(xs < 0 || ys > 7 || xe < 0 || ye > 7) return false; // Corner cases
+    if(end.getX() > 7 || end.getX() < 0) return false;
+    if(end.getY() > 7 || end.getY() < 0) return false;
+
+
     if(b.getPiece(end.getX(), end.getY())) return false;
     Common *c = dynamic_cast<Common*>(b.getPiece(start.getX(), start.getY()));
     if(!c) return false;
@@ -170,27 +169,20 @@ bool Common::canMove(Board &b, Spot &start, Spot &end) {
     return true;
 }
 
-// Spot& Common::canMove(Board &b, Spot &start) {
-//     Common *c = dynamic_cast<Common*>(b.getPiece(start.getX(), start.getY()));
-//     if(!c) return false;
-
-//     if(c->isWhite()) {
-        
-//         int dx = end.getX() - start.getX();
-//         int dy = end.getY() - start.getY();
-//         if(dy != -1) return false;
-//         if(dy != -abs(dx)) return false;
-//     }
-//     else {
-//         int dx = end.getX() - start.getX();
-//         int dy = end.getY() - start.getY();
-//         if(dy != 1) return false;
-//         if(dy != abs(dx)) return false;
-//     }
-//     return true;
-// }
+Spot* Common::canMove(Board &b, Spot& start) {
+    Spot* end1 = b.getSpot(start.getX() + 1, start.getY() + 1);
+    Spot* end2 = b.getSpot(start.getX() - 1, start.getY() + 1);
+    if(end1)
+        if(b.getPiece(start.getX(), start.getY())->canMove(b,start,*end1)) return end1;
+    if(end2)
+        if(b.getPiece(start.getX(), start.getY())->canMove(b,start,*end2)) return end2;
+    return NULL;
+}
 
 Spot* Common::canJump(Board &b, Spot &start, Spot &end) {
+    if(end.getX() > 7 || end.getX() < 0) return NULL;
+    if(end.getY() > 7 || end.getY() < 0) return NULL;
+
     if(b.getPiece(end.getX(), end.getY())) return NULL;
     Common *c = dynamic_cast<Common*>(b.getPiece(start.getX(), start.getY()));
     if(!c) return NULL;
@@ -199,16 +191,26 @@ Spot* Common::canJump(Board &b, Spot &start, Spot &end) {
         int dy = end.getY() - start.getY();
         if(dy != -2) return NULL;
         int pieceX = dx > 0 ? start.getX() + 1 : start.getX() - 1;
-        if(b.getPiece(pieceX, start.getY() - 1) == NULL) return NULL;
+        if(b.getPiece(pieceX, start.getY() - 1) == NULL || b.getPiece(pieceX, start.getY() - 1)->isWhite()) return NULL;
         return b.getSpot(pieceX, start.getY() - 1);
     } else {
         int dx = end.getX() - start.getX();
         int dy = end.getY() - start.getY();
         if(dy != 2) return NULL;
         int pieceX = dx > 0 ? start.getX() + 1 : start.getX() - 1;
-        if(b.getPiece(pieceX, start.getY() + 1) == NULL) return NULL;
+        if(b.getPiece(pieceX, start.getY() + 1) == NULL || !b.getPiece(pieceX, start.getY() + 1)->isWhite()) return NULL;
         return b.getSpot(pieceX, start.getY() + 1);
     }
+}
+
+Spot* Common::canJump(Board &b, Spot &start) {
+    Spot* end1 = b.getSpot(start.getX() + 2, start.getY() + 2);
+    Spot* end2 = b.getSpot(start.getX() - 2, start.getY() + 2);
+    if(end1)
+        if(b.getPiece(start.getX(), start.getY())->canJump(b,start,*end1)) return end1;
+    if(end2 != NULL)
+        if(b.getPiece(start.getX(), start.getY())->canJump(b,start,*end2)) return end2;
+    return NULL;
 }
 
 bool Queen::canMove(Board &b, Spot &start, Spot &end) {
@@ -239,6 +241,24 @@ bool Queen::canMove(Board &b, Spot &start, Spot &end) {
         startY += yDiagonal;
     }
     return true;
+}
+
+Spot* Queen::canMove(Board &b, Spot &start) {
+    int xDiagonal, yDiagonal, count = 0;
+    int xValues[4] = {1,1,-1,-1};
+    int yValues[4] = {1,-1,1,-1};
+    while(count < 4) {
+        xDiagonal = xValues[count]; yDiagonal = yValues[count];
+        int startX = start.getX() + xDiagonal, startY = start.getY() + yDiagonal;
+        while(startX >= 0 && startX <= 7 && startY >= 0 && startY <= 7) {
+            if(b.getPiece(start.getX(), start.getY())->canMove(b, start, *b.getSpot(startX,startY))) {
+                return b.getSpot(startX, startY);
+            }
+            startX += xDiagonal;
+            startY += yDiagonal;
+        }
+    }
+    return NULL;
 }
 
 Spot* Queen::canJump(Board &b, Spot &start, Spot &end) {
@@ -272,11 +292,28 @@ Spot* Queen::canJump(Board &b, Spot &start, Spot &end) {
     return b.getSpot(end.getX()-xDiagonal, end.getY()-yDiagonal);
 }
 
+Spot* Queen::canJump(Board &b, Spot &start) {
+    int xDiagonal, yDiagonal, count = 0;
+    int xValues[4] = {1,1,-1,-1};
+    int yValues[4] = {1,-1,1,-1};
+    while(count < 4) {
+        xDiagonal = xValues[count]; yDiagonal = yValues[count];
+        int startX = start.getX() + xDiagonal, startY = start.getY() + yDiagonal;
+        while(startX >= 0 && startX <= 7 && startY >= 0 && startY <= 7) {
+            if(b.getPiece(start.getX(), start.getY())->canJump(b, start, *b.getSpot(startX,startY)) != NULL) {
+                return b.getPiece(start.getX(), start.getY())->canJump(b, start, *b.getSpot(startX,startY));
+            }
+            startX += xDiagonal;
+            startY += yDiagonal;
+        }
+    }
+    return NULL;
+}
+
 
 class Game 
 {
 private:
-    //Status statusGame;
     bool isWhiteTurn;
     int deadWhiteCount, deadRedCount;
 public:
@@ -298,8 +335,33 @@ public:
         }
     }
 
-    bool turn() {
-        return isWhiteTurn;
+    bool movePieces() {
+        if(isWhiteTurn) return false;
+        for(int i = 0; i < 8; i++) {
+            for(int j = 0; j < 8; j++) {
+                if(board->getPiece(j,i) && !board->getPiece(j,i)->isWhite()) {
+                    Spot *c = board->getPiece(j,i)->canJump(*board, *board->getSpot(j,i));
+                    if(c != NULL) {
+                        movePiece(*board->getSpot(j,i), *c);
+                        return true;
+                    }
+                }
+            }
+        }
+
+        for(int i = 0; i < 8; i++) {
+            for(int j = 0; j < 8; j++) {
+                if(board->getPiece(j,i) && !board->getPiece(j,i)->isWhite()) {
+                    Spot *c = board->getPiece(j,i)->canMove(*board, *board->getSpot(j,i));
+                    if(c != NULL) {
+                        movePiece(*board->getSpot(j,i), *c);
+                        return true;
+                    }
+                }
+            }
+        }
+        cout << "Sem movimentos para a maquina" << endl;
+        return false;
     }
 };
 
@@ -415,6 +477,8 @@ int main() {
         }
 
         g.movePiece(*g.board->getSpot(column, line), *g.board->getSpot(eColumn, eLine));
+        g.board->print();
+        g.movePieces();
     }
     while(!g.isGameOver());
 
