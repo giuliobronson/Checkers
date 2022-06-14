@@ -125,8 +125,16 @@ public:
         cout << i + 1 << "| ";
             for(int j = 0; j < 8; j++) {
                 if(spots[i][j]->getPiece() == NULL) cout << "   ";
-                else if(spots[i][j]->getPiece()->isWhite()) cout << " B ";
-                else cout << " V ";
+                else if(spots[i][j]->getPiece()->isWhite()) {
+                    Queen *q = dynamic_cast<Queen*>(spots[i][j]->getPiece());
+                    if(q != NULL) cout << " BR";
+                    else cout << " B ";
+                } 
+                else {
+                    Queen *q = dynamic_cast<Queen*>(spots[i][j]->getPiece());
+                    if(q != NULL) cout << " VR";
+                    else cout << " V ";
+                } 
             }
             cout << endl;
         }
@@ -224,8 +232,8 @@ bool Queen::canMove(Board &b, Spot &start, Spot &end) {
         xDiagonal = -1;
         yDiagonal = 1;
     }
-    int startX = start.getX(), startY = start.getY();
-    while(startX != end.getX()-xDiagonal && startY != end.getY()-yDiagonal) {
+    int startX = start.getX() + xDiagonal, startY = start.getY() + yDiagonal;
+    while(startX != end.getX() && startY != end.getY()) {
         if(b.getPiece(startX, startY) != NULL) return false;
         startX += xDiagonal;
         startY += yDiagonal;
@@ -254,7 +262,13 @@ Spot* Queen::canJump(Board &b, Spot &start, Spot &end) {
         xDiagonal = -1;
         yDiagonal = 1;
     }
+    int startX = start.getX() + xDiagonal, startY = start.getY() + yDiagonal;
     if(b.getPiece(end.getX()-xDiagonal, end.getY()-yDiagonal) == NULL) return NULL;
+    while(startX != end.getX() - xDiagonal && startY != end.getY() - yDiagonal) {
+        if(b.getPiece(startX, startY) != NULL) return NULL;
+        startX += xDiagonal;
+        startY += yDiagonal;
+    }
     return b.getSpot(end.getX()-xDiagonal, end.getY()-yDiagonal);
 }
 
@@ -283,6 +297,10 @@ public:
             return;
         }
     }
+
+    bool turn() {
+        return isWhiteTurn;
+    }
 };
 
 bool Game::isGameOver() {
@@ -299,31 +317,60 @@ bool Game::isGameOver() {
 
 bool Game::movePiece(Spot &start, Spot &end) {
     Common *c = dynamic_cast<Common*> (board->getPiece(start.getX(), start.getY()));
-    //Queen *c = dynamic_cast<Queen*> board.getPiece(start.getX(), start.getY());
-    if((isWhiteTurn && !c->isWhite()) || (!isWhiteTurn && c->isWhite())) {
-        cout << "Voce nao pode mover a peca de outro jogador" << endl;
-        return false;
+    Queen *q = dynamic_cast<Queen*> (board->getPiece(start.getX(), start.getY()));
+    if(!c) {
+        if((isWhiteTurn && !q->isWhite()) || (!isWhiteTurn && q->isWhite())) {
+            cout << "Voce nao pode mover a peca de outro jogador" << endl;
+            return false;
+        }
+        if(q->canMove(*board, start, end)) {
+            board->getSpot(end.getX(), end.getY())->setPiece(start.getPiece());
+            board->getSpot(start.getX(), start.getY())->setPiece(NULL);
+            checkCrowning(*board->getSpot(end.getX(), end.getY()));
+            isWhiteTurn = !isWhiteTurn;
+            return true;
+        }
+
+        Spot* p = q->canJump(*board, start, end);
+        if(p != NULL) {
+            board->getSpot(end.getX(), end.getY())->setPiece(start.getPiece());
+            board->getSpot(start.getX(), start.getY())->setPiece(NULL);
+            checkCrowning(*board->getSpot(end.getX(), end.getY()));
+            p->getPiece()->setKilled(true);
+            if(p->getPiece()->isWhite()) deadWhiteCount++;
+            else deadRedCount++;
+            p->setPiece(NULL);
+            isWhiteTurn = !isWhiteTurn;
+            return true;
+        }
+
+    } else {
+        if((isWhiteTurn && !c->isWhite()) || (!isWhiteTurn && c->isWhite())) {
+            cout << "Voce nao pode mover a peca de outro jogador" << endl;
+            return false;
+        }
+        if(c->canMove(*board, start, end)) {
+            board->getSpot(end.getX(), end.getY())->setPiece(start.getPiece());
+            board->getSpot(start.getX(), start.getY())->setPiece(NULL);
+            checkCrowning(*board->getSpot(end.getX(), end.getY()));
+            isWhiteTurn = !isWhiteTurn;
+            return true;
+        }
+
+        Spot* p = c->canJump(*board, start, end);
+        if(p != NULL) {
+            board->getSpot(end.getX(), end.getY())->setPiece(start.getPiece());
+            board->getSpot(start.getX(), start.getY())->setPiece(NULL);
+            checkCrowning(*board->getSpot(end.getX(), end.getY()));
+            p->getPiece()->setKilled(true);
+            if(p->getPiece()->isWhite()) deadWhiteCount++;
+            else deadRedCount++;
+            p->setPiece(NULL);
+            isWhiteTurn = !isWhiteTurn;
+            return true;
+        }
     }
 
-    if(c->canMove(*board, start, end)) {
-        board->getSpot(end.getX(), end.getY())->setPiece(start.getPiece());
-        board->getSpot(start.getX(), start.getY())->setPiece(NULL);
-        isWhiteTurn = !isWhiteTurn;
-        return true;
-    }
-
-    Spot* p = c->canJump(*board, start, end);
-    if(p != NULL) {
-        board->getSpot(end.getX(), end.getY())->setPiece(start.getPiece());
-        board->getSpot(start.getX(), start.getY())->setPiece(NULL);
-        checkCrowning(*board->getSpot(end.getX(), end.getY()));
-        p->getPiece()->setKilled(true);
-        if(p->getPiece()->isWhite()) deadWhiteCount++;
-        else deadRedCount++;
-        p->setPiece(NULL);
-        isWhiteTurn = !isWhiteTurn;
-        return true;
-    }
     cout << "Movimento invalido" << endl;
     return false;
 }
@@ -334,18 +381,52 @@ bool Game::movePiece(Spot &start, Spot &end) {
 int main() {
     Game g;
 
-    g.board->print();
-    cout << g.board->getPiece(1,5)->canMove(*g.board, *g.board->getSpot(1,5),*g.board->getSpot(2,4)) << endl << endl;
+    // g.board->print();
+    // cout << g.board->getPiece(1,5)->canMove(*g.board, *g.board->getSpot(1,5),*g.board->getSpot(2,4)) << endl << endl;
 
-    g.movePiece(*g.board->getSpot(1,5), *g.board->getSpot(2,4));
-    g.board->print();
-    g.movePiece(*g.board->getSpot(0,2), *g.board->getSpot(1,3));
-    g.board->print();
-    g.movePiece(*g.board->getSpot(2,4), *g.board->getSpot(0,2));
-    g.board->print();
-    g.movePiece(*g.board->getSpot(4,2), *g.board->getSpot(5,3));
-    g.board->print();
-    g.movePiece(*g.board->getSpot(0,2), *g.board->getSpot(1,1));
+    do {
+        g.board->print();
+        cout << endl;
+        int line;
+        char col;
+        cout << "Insira as coordenadas da peca que quer mover: ";
+        cin >> col >> line;
+        int column = col - 'A';
+        line--;
+        if(line > 7 || column < 0) {
+            cout << "Coordenada invalida" << endl;
+            continue;
+        }
+
+        if(g.board->getPiece(column,line) == NULL) {
+            cout << "Casa vazia" << endl;
+            continue;
+        }
+
+        int eLine;
+        char eCol;
+        cout << "Insira as coordenadas destino da peca: ";
+        cin >> eCol >> eLine;
+        int eColumn = eCol - 'A';
+        eLine--;
+        if(eLine > 7 || eColumn < 0) {
+            cout << "Coordenada invalida" << endl;
+            continue;
+        }
+
+        g.movePiece(*g.board->getSpot(column, line), *g.board->getSpot(eColumn, eLine));
+    }
+    while(!g.isGameOver());
+
+    // g.movePiece(*g.board->getSpot(1,5), *g.board->getSpot(2,4));
+    // g.board->print();
+    // g.movePiece(*g.board->getSpot(0,2), *g.board->getSpot(1,3));
+    // g.board->print();
+    // g.movePiece(*g.board->getSpot(2,4), *g.board->getSpot(0,2));
+    // g.board->print();
+    // g.movePiece(*g.board->getSpot(4,2), *g.board->getSpot(5,3));
+    // g.board->print();
+    // g.movePiece(*g.board->getSpot(0,2), *g.board->getSpot(1,1));
 
     return 0;
 }
