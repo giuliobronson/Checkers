@@ -123,25 +123,26 @@ public:
         for(int i = 0; i < 8; i++) {
         cout << i + 1 << "| ";
             for(int j = 0; j < 8; j++) {
-                if(spots[i][j]->getPiece() == NULL) cout << "   ";
+                if(spots[i][j]->getPiece() == NULL) cout << "   |";
                 else if(spots[i][j]->getPiece()->isWhite()) {
                     Queen *q = dynamic_cast<Queen*>(spots[i][j]->getPiece());
-                    if(q != NULL) cout << " BR";
-                    else cout << " B ";
+                    if(q != NULL) cout << " BR|";
+                    else cout << " B |";
                 } 
                 else {
                     Queen *q = dynamic_cast<Queen*>(spots[i][j]->getPiece());
-                    if(q != NULL) cout << " VR";
-                    else cout << " V ";
+                    if(q != NULL) cout << " VR|";
+                    else cout << " V |";
                 } 
             }
             cout << endl;
+            for(int i = 0; i < 9; i++) cout << "----";
+            cout << endl;
         }
         cout << "  ";
-        for(int i = 0; i < 8; i++) cout << "---";
         cout << endl;
         cout << "   ";
-        for(int i = 0; i < 8; i++) cout << " " << (char)('A' + i) << " ";
+        for(int i = 0; i < 8; i++) cout << " " << (char)('A' + i) << "  ";
         cout << endl;
     }
 };
